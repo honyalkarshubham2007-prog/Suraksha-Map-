@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="SurakshaMap demo administrator access." />
+    <title>SurakshaMap | Admin Login</title>
+    <link rel="stylesheet" href="styles.css" />
+    <style>
+      .admin-shell {
+        max-width: 720px;
+        margin: 0 auto;
+      }
+      .admin-card {
+        padding: 28px;
+      }
+      .admin-card h2 {
+        margin-bottom: 8px;
+      }
+      .admin-form {
+        display: grid;
+        gap: 16px;
+        margin-top: 20px;
+      }
+      .admin-form input {
+        width: 100%;
+      }
+      .admin-note {
+        margin-top: 16px;
+      }
+      .admin-actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+      }
+      .admin-error {
+        color: var(--critical);
+        font-weight: 600;
+        min-height: 1.4em;
+      }
+      .admin-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 16px;
+        flex-wrap: wrap;
+      }
+      .admin-table-wrap {
+        overflow-x: auto;
+        margin-top: 18px;
+      }
+      .admin-table {
+        width: 100%;
+        min-width: 760px;
+        border-collapse: collapse;
+      }
+      .admin-table th,
+      .admin-table td {
+        padding: 10px;
+        border-bottom: 1px solid var(--line);
+        text-align: left;
+        vertical-align: top;
+      }
+      .admin-table th {
+        font-size: 0.75rem;
+        text-transform: uppercase;
+        color: var(--ink-soft);
+      }
+    </style>
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="brand">
+        <div
+          class="brand-logo brand-logo-fallback"
+          style="display: flex"
+          aria-hidden="true"
+        >
+          <span style="font-size: 22px">✓</span>
+        </div>
+        <div class="brand-text">
+          <p class="brand-kicker">Hackathon prototype</p>
+          <h1>SurakshaMap Admin</h1>
+        </div>
+      </div>
+    </header>
+    <main class="container admin-shell">
+      <section id="login-card" class="panel admin-card">
+        <p class="eyebrow">Demo administrator access</p>
+        <h2>Admin login</h2>
+        <p class="muted">
+          This is a frontend-only hackathon prototype. The credentials below are
+          not secure production authentication.
+        </p>
+        <form id="admin-login-form" class="admin-form">
+          <label
+            >Username<input
+              id="admin-username"
+              autocomplete="username"
+              required
+          /></label>
+          <label
+            >Password<input
+              id="admin-password"
+              type="password"
+              autocomplete="current-password"
+              required
+          /></label>
+          <button class="primary-button" type="submit">Sign in</button>
+          <p id="login-error" class="admin-error" role="alert"></p>
+        </form>
+        <div class="notice admin-note">
+          <strong>Demo credentials:</strong> admin / suraksha2026
+        </div>
+      </section>
+
+      <section id="admin-panel" hidden>
+        <div class="admin-top section-heading">
+          <div>
+            <p class="eyebrow">Authenticated demo session</p>
+            <h2>Report management</h2>
+            <p class="muted">
+              Changes use the same browser-local report store as the public
+              prototype.
+            </p>
+          </div>
+          <div class="admin-actions">
+            <a class="ghost-button" href="index.html">Public site</a
+            ><button id="admin-logout" class="secondary-button" type="button">
+              Log out
+            </button>
+          </div>
+        </div>
+        <div class="stats-grid">
+          <div class="stat panel">
+            <span>Total</span><strong id="admin-total">0</strong>
+          </div>
+          <div class="stat panel">
+            <span>Open</span><strong id="admin-open">0</strong>
+          </div>
+          <div class="stat panel">
+            <span>Review</span><strong id="admin-review">0</strong>
+          </div>
+          <div class="stat panel">
+            <span>Resolved</span><strong id="admin-resolved">0</strong>
+          </div>
+        </div>
+        <div class="panel report-management">
+          <h3>Reports</h3>
+          <div class="admin-table-wrap">
+            <table class="admin-table">
+              <thead>
+                <tr>
+                  <th>Token</th>
+                  <th>Issue</th>
+                  <th>Severity</th>
+                  <th>Submitted</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="admin-report-table"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </main>
+    <footer class="site-footer">
+      <p>
+        SurakshaMap demo admin · <a href="privacy.html">Privacy policy</a> ·
+        <a href="index.html">Return to public site</a>
+      </p>
+    </footer>
+    <script src="admin.js"></script>
+  </body>
+</html>
