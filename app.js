@@ -1,4 +1,5 @@
 const STORAGE_KEY = "surakshamap-reports-v2";
+const MY_REPORT_TOKENS_KEY = "surakshamap-my-report-tokens-v1";
 const CENTER = [19.1234, 72.9876];
 const riskApi = window.SurakshaMapRisk;
 const GROUPING_RADIUS = 200;
@@ -10,9 +11,12 @@ const RISK_COLORS = {
   Critical: "#C6423F",
 };
 const STATUS_LABELS = {
+  pending: "Pending approval",
   open: "Open",
   under_review: "Under review",
   resolved: "Resolved",
+  closed: "Closed",
+  rejected: "Rejected",
 };
 
 let reports = [];
@@ -31,6 +35,7 @@ const demoReports = [
     severity: "high",
     submittedAt: daysAgoIso(1, 21),
     status: "open",
+    approved: true,
     photo: null,
   },
   {
@@ -43,6 +48,7 @@ const demoReports = [
     severity: "medium",
     submittedAt: daysAgoIso(2, 20),
     status: "under_review",
+    approved: true,
     photo: null,
   },
   {
@@ -55,6 +61,7 @@ const demoReports = [
     severity: "critical",
     submittedAt: daysAgoIso(3, 10),
     status: "open",
+    approved: true,
     photo: null,
   },
   {
@@ -67,6 +74,7 @@ const demoReports = [
     severity: "medium",
     submittedAt: daysAgoIso(20, 12),
     status: "resolved",
+    approved: true,
     photo: null,
   },
 ];
@@ -91,7 +99,19 @@ function generateToken() {
 function loadReports() {
   try {
     const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) return JSON.parse(saved);
+    if (saved) {
+      const stored = JSON.parse(saved);
+      const migrated = stored.map((report) => ({
+        ...report,
+        status: report.status || "pending",
+        approved:
+          typeof report.approved === "boolean"
+            ? report.approved
+            : report.status !== "pending",
+      }));
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(migrated));
+      return migrated;
+    }
     localStorage.setItem(STORAGE_KEY, JSON.stringify(demoReports));
     return demoReports;
   } catch (error) {
@@ -99,6 +119,31 @@ function loadReports() {
     document.getElementById("storage-notice").hidden = false;
     return [...demoReports];
   }
+}
+
+function loadMyReportTokens() {
+  try {
+    const saved = JSON.parse(
+      localStorage.getItem(MY_REPORT_TOKENS_KEY) || "[]",
+    );
+    return Array.isArray(saved) ? saved : [];
+  } catch (error) {
+    return [];
+  }
+}
+
+function rememberMyReportToken(token) {
+  const tokens = loadMyReportTokens();
+  if (!tokens.includes(token)) tokens.push(token);
+  try {
+    localStorage.setItem(MY_REPORT_TOKENS_KEY, JSON.stringify(tokens));
+  } catch (error) {
+    console.warn("Could not save report ownership token", error);
+  }
+}
+
+function isMyReport(report) {
+  return Boolean(report && loadMyReportTokens().includes(report.token));
 }
 
 function saveReports() {
@@ -253,11 +298,13 @@ document.getElementById("report-form").addEventListener("submit", (event) => {
     latitude: Math.round(latitude * 10000) / 10000,
     longitude: Math.round(longitude * 10000) / 10000,
     submittedAt: new Date().toISOString(),
-    status: "open",
+    status: "pending",
+    approved: false,
     photo: selectedPhotoDataUrl,
   };
 
   reports.push(report);
+  rememberMyReportToken(report.token);
   saveReports();
 
   message.innerHTML = `Report submitted. Your tracking token is <span class="tracking-token">${report.token}</span> — save it to check status later.`;
@@ -313,11 +360,20 @@ function trackReport() {
     timeStyle: "short",
   });
 
+  // Public users can edit status only for reports they submitted in this browser,
+  // and the only public status transition is to Resolved.
+  const publicAction =
+    isMyReport(report) &&
+    report.approved &&
+    !["resolved", "closed", "rejected"].includes(report.status)
+      ? `<button class="secondary-button resolve-report-button" type="button" data-id="${report.id}">Mark as Resolved</button>`
+      : "";
+
   result.innerHTML = `
     <div class="tracking-card">
       <div class="tracking-card-head">
         <span class="tracking-token">${report.token}</span>
-        <span class="status-pill ${report.status}">${STATUS_LABELS[report.status]}</span>
+        <span class="status-pill ${report.status}">${STATUS_LABELS[report.status] || report.status}</span>
       </div>
       <p><strong>${escapeHtml(report.category)}</strong> &middot; ${report.severity} severity</p>
       <p class="muted">${escapeHtml(report.description)}</p>
@@ -325,8 +381,29 @@ function trackReport() {
       ${report.photo ? `<img class="tracking-photo" src="${report.photo}" alt="Photo submitted with report" />` : ""}
       <div class="risk-line"><span class="badge ${risk.riskLevel}">${risk.riskLevel} risk</span><span class="muted">score ${risk.score}</span></div>
       <p class="recommendation">${escapeHtml(risk.recommendation)}</p>
+      ${!report.approved ? `<p class="muted"><strong>Waiting for admin approval.</strong> This report is not visible on the public map or dashboard yet.</p>` : ""}
+      ${publicAction ? `<div class="tracking-actions">${publicAction}</div>` : ""}
     </div>
   `;
+
+  result
+    .querySelector(".resolve-report-button")
+    ?.addEventListener("click", () => {
+      const current = reports.find((r) => r.id === report.id);
+      if (
+        !current ||
+        !current.approved ||
+        !isMyReport(current) ||
+        ["resolved", "closed", "rejected"].includes(current.status)
+      )
+        return;
+      current.status = "resolved";
+      current.lastUpdatedAt = new Date().toISOString();
+      current.lastUpdatedBy = "public";
+      saveReports();
+      trackReport();
+      renderHome();
+    });
 }
 
 function escapeHtml(text) {
@@ -337,11 +414,20 @@ function escapeHtml(text) {
 
 /* ---------------- Home ---------------- */
 
+function publicReports() {
+  return reports.filter((r) => r.approved === true);
+}
+
 function renderHome() {
-  const open = reports.filter((r) => r.status !== "resolved").length;
+  const visible = publicReports();
+  const open = visible.filter(
+    (r) => r.status === "open" || r.status === "under_review",
+  ).length;
   document.getElementById("home-open-count").textContent = open;
   const hotspots = riskApi.groupReportsIntoHotspots(
-    reports.filter((r) => r.status !== "resolved"),
+    visible.filter(
+      (r) => !["resolved", "closed", "rejected"].includes(r.status),
+    ),
     { groupingRadiusMeters: GROUPING_RADIUS },
   );
   document.getElementById("home-hotspot-count").textContent = hotspots.length;
@@ -364,7 +450,7 @@ function drawMap() {
   const categoryFilter = document.getElementById("map-filter").value;
   const statusFilter = document.getElementById("status-filter").value;
 
-  const visible = reports.filter(
+  const visible = publicReports().filter(
     (r) =>
       (categoryFilter === "all" || r.category === categoryFilter) &&
       (statusFilter === "all" || r.status === statusFilter),
@@ -414,13 +500,18 @@ document.getElementById("status-filter").addEventListener("change", drawMap);
 /* ---------------- Dashboard ---------------- */
 
 function renderDashboard() {
-  const total = reports.length;
-  const open = reports.filter((r) => r.status === "open").length;
-  const underReview = reports.filter((r) => r.status === "under_review").length;
-  const resolved = reports.filter((r) => r.status === "resolved").length;
+  const visibleReports = publicReports();
+  const total = visibleReports.length;
+  const open = visibleReports.filter((r) => r.status === "open").length;
+  const underReview = visibleReports.filter(
+    (r) => r.status === "under_review",
+  ).length;
+  const resolved = visibleReports.filter((r) => r.status === "resolved").length;
 
   const activeHotspots = riskApi.groupReportsIntoHotspots(
-    reports.filter((r) => r.status !== "resolved"),
+    visibleReports.filter(
+      (r) => !["resolved", "closed", "rejected"].includes(r.status),
+    ),
     { groupingRadiusMeters: GROUPING_RADIUS },
   );
   const highRisk = activeHotspots.filter(
@@ -453,7 +544,7 @@ function renderDashboard() {
     : `<p class="muted">No active hotspots right now.</p>`;
 
   const categoryCounts = {};
-  reports.forEach((r) => {
+  visibleReports.forEach((r) => {
     categoryCounts[r.category] = (categoryCounts[r.category] || 0) + 1;
   });
   const maxCount = Math.max(1, ...Object.values(categoryCounts));
@@ -474,52 +565,35 @@ function renderDashboard() {
 
 function renderReportTable() {
   const table = document.getElementById("report-table");
-  const sorted = [...reports].sort(
+  const sorted = [...publicReports()].sort(
     (a, b) => new Date(b.submittedAt) - new Date(a.submittedAt),
   );
 
-  table.innerHTML = sorted
-    .map((report) => {
-      const nearby = reports.filter(
-        (r) =>
-          r.id !== report.id &&
-          riskApi.distanceInMeters(
-            report.latitude,
-            report.longitude,
-            r.latitude,
-            r.longitude,
-          ) <= GROUPING_RADIUS,
-      );
-      const risk = riskApi.calculateRiskScore(report, nearby);
-      return `
-        <tr>
-          <td><code>${report.token}</code></td>
-          <td>${report.photo ? `<img class="table-thumb" src="${report.photo}" alt="Report photo" />` : "&mdash;"}</td>
-          <td>${escapeHtml(report.category)}<br /><span class="muted">${report.severity}</span></td>
-          <td><span class="badge ${risk.riskLevel}">${risk.riskLevel}</span></td>
-          <td><span class="status-pill ${report.status}">${STATUS_LABELS[report.status]}</span></td>
-          <td>
-            <select class="status-select" data-id="${report.id}">
-              <option value="open" ${report.status === "open" ? "selected" : ""}>Open</option>
-              <option value="under_review" ${report.status === "under_review" ? "selected" : ""}>Under review</option>
-              <option value="resolved" ${report.status === "resolved" ? "selected" : ""}>Resolved</option>
-            </select>
-          </td>
-        </tr>`;
-    })
-    .join("");
-
-  table.querySelectorAll(".status-select").forEach((select) => {
-    select.addEventListener("change", () => {
-      const report = reports.find((r) => r.id === select.dataset.id);
-      if (report) {
-        report.status = select.value;
-        saveReports();
-        renderDashboard();
-        renderHome();
-      }
-    });
-  });
+  table.innerHTML = sorted.length
+    ? sorted
+        .map((report) => {
+          const nearby = publicReports().filter(
+            (r) =>
+              r.id !== report.id &&
+              riskApi.distanceInMeters(
+                report.latitude,
+                report.longitude,
+                r.latitude,
+                r.longitude,
+              ) <= GROUPING_RADIUS,
+          );
+          const risk = riskApi.calculateRiskScore(report, nearby);
+          return `
+      <tr>
+        <td><code>${report.token}</code></td>
+        <td>${report.photo ? `<img class="table-thumb" src="${report.photo}" alt="Report photo" />` : "&mdash;"}</td>
+        <td>${escapeHtml(report.category)}<br /><span class="muted">${report.severity}</span></td>
+        <td><span class="badge ${risk.riskLevel}">${risk.riskLevel}</span></td>
+        <td><span class="status-pill ${report.status}">${STATUS_LABELS[report.status] || report.status}</span></td>
+      </tr>`;
+        })
+        .join("")
+    : `<tr><td colspan="5" class="muted">No approved reports are currently public.</td></tr>`;
 }
 
 /* ---------------- Init ---------------- */
