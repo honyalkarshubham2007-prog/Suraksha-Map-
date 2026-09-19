@@ -1,6 +1,6 @@
 # SurakshaMap — Community Safety Reporting & Risk Intelligence
 
-Built for the Avengers Hackathon (Unstop) · Open Innovation track
+Built for the devengers Hackathon (Unstop) · Open Innovation track
 
 ## Problem
 Everyday public-space hazards — broken streetlights, open manholes, unsafe
