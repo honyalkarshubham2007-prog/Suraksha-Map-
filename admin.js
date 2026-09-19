@@ -1,206 +1,107 @@
-const ADMIN_SESSION_KEY = "surakshamap-admin-session";
-const STORAGE_KEY = "surakshamap-reports-v2";
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="SurakshaMap local admin panel — manage reports stored in this browser." />
+    <title>Admin Panel | SurakshaMap</title>
 
-const ADMIN_USERNAME = "admin";
-const ADMIN_PASSWORD = "suraksha2026";
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Serif:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@500;600&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="brand">
+        <img src="SurakshaMap_logo.png" alt="SurakshaMap logo" class="brand-logo" onerror="this.style.display='none'; document.getElementById('logo-fallback').style.display='flex';" />
+        <div id="logo-fallback" class="brand-logo brand-logo-fallback" aria-hidden="true">
+          <svg viewBox="0 0 48 48" width="30" height="30" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M24 4 L42 11 V22 C42 33 34.5 41 24 44 C13.5 41 6 33 6 22 V11 Z" fill="#56C8BD" stroke="#0A5C54" stroke-width="2"/>
+            <path d="M17 23.5 L22 28.5 L32 17.5" stroke="#0A3A38" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <p class="brand-kicker">Technathon 2026 &middot; PS 12</p>
+          <h1>SurakshaMap</h1>
+        </div>
+      </div>
+      <nav aria-label="Main navigation">
+        <a class="nav-button" href="index.html">Back to site</a>
+      </nav>
+    </header>
 
-const STATUS_LABELS = {
-  pending: "Pending approval",
-  open: "Open",
-  under_review: "Under review",
-  resolved: "Resolved",
-  closed: "Closed",
-  rejected: "Rejected",
-};
+    <main class="container">
+      <section class="view active-view">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Local admin</p>
+            <h2>Admin panel</h2>
+          </div>
+        </div>
 
-const ADMIN_STATUSES = [
-  "open",
-  "under_review",
-  "resolved",
-  "closed",
-  "rejected",
-];
+        <div id="login-panel" class="panel tracking-search" style="max-width: 460px;">
+          <p class="eyebrow" style="margin-bottom: 10px;">Demo sign-in</p>
+          <p class="muted">This gate is a front-end demo only — there is no backend to check credentials against, so it isn't real security. Anyone can read the passphrase in <code>admin.js</code> or the page source. Treat this as a walkthrough convenience, not access control.</p>
+          <form id="login-form">
+            <label>Passphrase
+              <input id="passphrase" type="password" autocomplete="off" placeholder="Enter the demo passphrase" required />
+            </label>
+            <button class="primary-button full-width" type="submit" style="margin-top: 14px;">Sign in</button>
+            <p id="login-message" class="form-message" role="status"></p>
+          </form>
+          <p class="tiny-note">Demo passphrase: <code>suraksha-demo</code></p>
+        </div>
 
-const loginCard = document.getElementById("login-card");
-const adminPanel = document.getElementById("admin-panel");
-const loginForm = document.getElementById("admin-login-form");
-const loginError = document.getElementById("login-error");
-const reportTable = document.getElementById("admin-report-table");
+        <div id="admin-content" hidden>
+          <div class="notice error" style="margin-bottom: 22px;">
+            <strong>No real authentication.</strong> This prototype has no backend — the passphrase screen is a demo convenience, not real access control. A production deployment would need a real login before a page like this means anything. See the <a href="privacy.html">privacy policy</a> for details.
+          </div>
 
-function isLoggedIn() {
-  return sessionStorage.getItem(ADMIN_SESSION_KEY) === "true";
-}
+          <div class="section-heading compact" style="margin-bottom: 18px;">
+            <div></div>
+            <button id="logout-button" class="secondary-button">Sign out</button>
+          </div>
 
-function showAdmin() {
-  loginCard.hidden = true;
-  adminPanel.hidden = false;
-  renderAdmin();
-}
+          <div class="stats-grid" style="margin-bottom: 22px;">
+            <div class="stat panel"><span>Total reports</span><strong id="a-total">0</strong></div>
+            <div class="stat panel"><span>Open</span><strong id="a-open">0</strong></div>
+            <div class="stat panel"><span>Under review</span><strong id="a-review">0</strong></div>
+            <div class="stat panel"><span>Resolved</span><strong id="a-resolved">0</strong></div>
+          </div>
 
-function showLogin() {
-  loginCard.hidden = false;
-  adminPanel.hidden = true;
-}
-
-function getReports() {
-  try {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    const reports = saved ? JSON.parse(saved) : [];
-    return reports.map((report) => ({
-      ...report,
-      approved:
-        typeof report.approved === "boolean"
-          ? report.approved
-          : report.status !== "pending",
-      status: report.status || "pending",
-    }));
-  } catch (error) {
-    console.error("Could not load reports", error);
-    return [];
-  }
-}
-
-function saveReports(reports) {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(reports));
-}
-
-function escapeHtml(text) {
-  const div = document.createElement("div");
-  div.textContent = text ?? "";
-  return div.innerHTML;
-}
-
-function renderAdmin() {
-  const reports = getReports();
-
-  const pending = reports.filter((r) => !r.approved).length;
-  const approved = reports.filter((r) => r.approved).length;
-  const open = reports.filter((r) => r.approved && r.status === "open").length;
-  const review = reports.filter(
-    (r) => r.approved && r.status === "under_review",
-  ).length;
-  const resolved = reports.filter(
-    (r) => r.approved && r.status === "resolved",
-  ).length;
-
-  document.getElementById("admin-pending").textContent = pending;
-  document.getElementById("admin-approved").textContent = approved;
-  document.getElementById("admin-open").textContent = open;
-  document.getElementById("admin-review").textContent = review;
-  document.getElementById("admin-resolved").textContent = resolved;
-
-  const sorted = [...reports].sort(
-    (a, b) => new Date(b.submittedAt) - new Date(a.submittedAt),
-  );
-
-  reportTable.innerHTML = sorted.length
-    ? sorted
-        .map((report) => {
-          const submitted = new Date(report.submittedAt).toLocaleString(
-            "en-IN",
-            { dateStyle: "medium", timeStyle: "short" },
-          );
-          const statusOptions = ADMIN_STATUSES.map(
-            (status) =>
-              `<option value="${status}" ${report.status === status ? "selected" : ""}>${STATUS_LABELS[status]}</option>`,
-          ).join("");
-
-          return `
-          <tr>
-            <td><code>${escapeHtml(report.token)}</code></td>
-            <td>
-              <strong>${escapeHtml(report.category)}</strong><br />
-              <span class="muted">${escapeHtml(report.description || "")}</span>
-            </td>
-            <td>${escapeHtml(report.severity)}</td>
-            <td>${submitted}</td>
-            <td><span class="status-pill ${report.status}">${STATUS_LABELS[report.status] || report.status}</span></td>
-            <td>
-              ${
-                report.approved
-                  ? `<span class="badge Low">Approved</span>`
-                  : `<button class="primary-button admin-approve" type="button" data-id="${report.id}">Approve</button>`
-              }
-            </td>
-            <td>
-              <div class="admin-actions-cell">
-                <select class="admin-status-select" data-id="${report.id}">
-                  ${report.approved ? statusOptions : `<option value="pending" selected>Pending approval</option>`}
-                </select>
-                <button class="secondary-button admin-apply" type="button" data-id="${report.id}" ${report.approved ? "" : "disabled"}>Apply</button>
+          <div class="panel report-management">
+            <div class="section-heading compact">
+              <div>
+                <h3>All reports</h3>
+                <p class="muted">Update status or remove a report. Changes are saved immediately to this browser's storage.</p>
               </div>
-            </td>
-          </tr>
-        `;
-        })
-        .join("")
-    : `<tr><td colspan="7" class="muted">No reports have been submitted yet.</td></tr>`;
+              <div class="filters">
+                <select id="a-status-filter">
+                  <option value="all">All statuses</option>
+                  <option value="open">Open</option>
+                  <option value="under_review">Under review</option>
+                  <option value="resolved">Resolved</option>
+                </select>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Token</th><th>Photo</th><th>Issue</th><th>Location</th><th>Risk</th><th>Status</th><th>Update</th><th></th></tr></thead>
+                <tbody id="a-table"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
 
-  reportTable.querySelectorAll(".admin-approve").forEach((button) => {
-    button.addEventListener("click", () => approveReport(button.dataset.id));
-  });
+    <footer class="site-footer">
+      <p>SurakshaMap is a hackathon prototype. Reports require human verification before action. Data is stored locally in this browser only.</p>
+      <p class="footer-links"><a href="index.html">Home</a> &middot; <a href="privacy.html">Privacy policy</a></p>
+    </footer>
 
-  reportTable.querySelectorAll(".admin-apply").forEach((button) => {
-    button.addEventListener("click", () => {
-      const select = reportTable.querySelector(
-        `.admin-status-select[data-id="${button.dataset.id}"]`,
-      );
-      if (select) setAdminStatus(button.dataset.id, select.value);
-    });
-  });
-}
-
-function approveReport(id) {
-  const reports = getReports();
-  const report = reports.find((item) => item.id === id);
-  if (!report) return;
-
-  report.approved = true;
-  report.status = "open";
-  report.approvedAt = new Date().toISOString();
-  report.approvedBy = "admin";
-
-  saveReports(reports);
-  renderAdmin();
-}
-
-function setAdminStatus(id, status) {
-  if (!ADMIN_STATUSES.includes(status)) return;
-
-  const reports = getReports();
-  const report = reports.find((item) => item.id === id);
-  if (!report || !report.approved) return;
-
-  report.status = status;
-  report.lastUpdatedAt = new Date().toISOString();
-  report.lastUpdatedBy = "admin";
-
-  saveReports(reports);
-  renderAdmin();
-}
-
-loginForm.addEventListener("submit", (event) => {
-  event.preventDefault();
-  const username = document.getElementById("admin-username").value.trim();
-  const password = document.getElementById("admin-password").value;
-
-  if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
-    sessionStorage.setItem(ADMIN_SESSION_KEY, "true");
-    loginError.textContent = "";
-    showAdmin();
-  } else {
-    loginError.textContent = "Invalid admin credentials.";
-  }
-});
-
-document.getElementById("admin-logout").addEventListener("click", () => {
-  sessionStorage.removeItem(ADMIN_SESSION_KEY);
-  showLogin();
-});
-
-window.addEventListener("storage", () => {
-  if (isLoggedIn()) renderAdmin();
-});
-
-if (isLoggedIn()) showAdmin();
-else showLogin();
+    <script src="surakshamap-risk.js" defer></script>
+    <script src="admin.js" defer></script>
+  </body>
+</html>
