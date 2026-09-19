@@ -3,24 +3,25 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="SurakshaMap demo administrator access." />
-    <title>SurakshaMap | Admin Login</title>
+    <meta
+      name="description"
+      content="SurakshaMap administrator moderation dashboard."
+    />
+    <title>SurakshaMap | Admin</title>
     <link rel="stylesheet" href="styles.css" />
     <style>
       .admin-shell {
-        max-width: 720px;
+        max-width: 1180px;
         margin: 0 auto;
       }
       .admin-card {
         padding: 28px;
       }
-      .admin-card h2 {
-        margin-bottom: 8px;
-      }
       .admin-form {
         display: grid;
         gap: 16px;
         margin-top: 20px;
+        max-width: 520px;
       }
       .admin-form input {
         width: 100%;
@@ -51,12 +52,12 @@
       }
       .admin-table {
         width: 100%;
-        min-width: 760px;
+        min-width: 980px;
         border-collapse: collapse;
       }
       .admin-table th,
       .admin-table td {
-        padding: 10px;
+        padding: 11px;
         border-bottom: 1px solid var(--line);
         text-align: left;
         vertical-align: top;
@@ -65,6 +66,21 @@
         font-size: 0.75rem;
         text-transform: uppercase;
         color: var(--ink-soft);
+      }
+      .admin-table select {
+        min-width: 145px;
+      }
+      .admin-table img {
+        max-width: 80px;
+        border-radius: 8px;
+      }
+      .admin-actions-cell {
+        display: flex;
+        gap: 7px;
+        flex-wrap: wrap;
+      }
+      .admin-actions-cell button {
+        white-space: nowrap;
       }
     </style>
   </head>
@@ -84,13 +100,13 @@
         </div>
       </div>
     </header>
+
     <main class="container admin-shell">
       <section id="login-card" class="panel admin-card">
-        <p class="eyebrow">Demo administrator access</p>
+        <p class="eyebrow">Administrator access</p>
         <h2>Admin login</h2>
         <p class="muted">
-          This is a frontend-only hackathon prototype. The credentials below are
-          not secure production authentication.
+          Use the demo credentials configured for this hackathon prototype.
         </p>
         <form id="admin-login-form" class="admin-form">
           <label
@@ -118,35 +134,45 @@
         <div class="admin-top section-heading">
           <div>
             <p class="eyebrow">Authenticated demo session</p>
-            <h2>Report management</h2>
+            <h2>Report moderation</h2>
             <p class="muted">
-              Changes use the same browser-local report store as the public
-              prototype.
+              Approve reports before they become public. Admins can set any
+              supported status; public users can only mark an approved report as
+              Resolved.
             </p>
           </div>
           <div class="admin-actions">
-            <a class="ghost-button" href="index.html">Public site</a
-            ><button id="admin-logout" class="secondary-button" type="button">
+            <a class="ghost-button" href="index.html">Public site</a>
+            <button id="admin-logout" class="secondary-button" type="button">
               Log out
             </button>
           </div>
         </div>
+
         <div class="stats-grid">
           <div class="stat panel">
-            <span>Total</span><strong id="admin-total">0</strong>
+            <span>Pending approval</span><strong id="admin-pending">0</strong>
+          </div>
+          <div class="stat panel">
+            <span>Approved</span><strong id="admin-approved">0</strong>
           </div>
           <div class="stat panel">
             <span>Open</span><strong id="admin-open">0</strong>
           </div>
           <div class="stat panel">
-            <span>Review</span><strong id="admin-review">0</strong>
+            <span>Under review</span><strong id="admin-review">0</strong>
           </div>
           <div class="stat panel">
             <span>Resolved</span><strong id="admin-resolved">0</strong>
           </div>
         </div>
+
         <div class="panel report-management">
-          <h3>Reports</h3>
+          <h3>All submitted reports</h3>
+          <p class="muted">
+            Pending reports stay hidden from the public dashboard and map until
+            approved.
+          </p>
           <div class="admin-table-wrap">
             <table class="admin-table">
               <thead>
@@ -155,7 +181,9 @@
                   <th>Issue</th>
                   <th>Severity</th>
                   <th>Submitted</th>
-                  <th>Status</th>
+                  <th>Current status</th>
+                  <th>Approval</th>
+                  <th>Admin status</th>
                 </tr>
               </thead>
               <tbody id="admin-report-table"></tbody>
@@ -164,9 +192,10 @@
         </div>
       </section>
     </main>
+
     <footer class="site-footer">
       <p>
-        SurakshaMap demo admin · <a href="privacy.html">Privacy policy</a> ·
+        SurakshaMap admin · <a href="privacy.html">Privacy policy</a> ·
         <a href="index.html">Return to public site</a>
       </p>
     </footer>
