@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="SurakshaMap privacy information." />
+    <title>SurakshaMap | Privacy Policy</title>
+    <link rel="stylesheet" href="styles.css" />
+    <style>
+      .policy {
+        max-width: 820px;
+        margin: 0 auto;
+        padding: 28px;
+      }
+      .policy h3 {
+        margin-top: 24px;
+      }
+      .policy li {
+        margin: 8px 0;
+      }
+    </style>
+  </head>
+  <body>
+    <header class="site-header">
+      <div class="brand">
+        <div
+          class="brand-logo brand-logo-fallback"
+          style="display: flex"
+          aria-hidden="true"
+        >
+          <span style="font-size: 22px">✓</span>
+        </div>
+        <div class="brand-text">
+          <p class="brand-kicker">SurakshaMap</p>
+          <h1>Privacy policy</h1>
+        </div>
+      </div>
+    </header>
+    <main class="container">
+      <article class="panel policy">
+        <p class="eyebrow">Hackathon prototype</p>
+        <h2>Privacy & data use</h2>
+        <p>
+          SurakshaMap is designed as a browser-only prototype for community
+          safety reporting. This page describes what the supplied prototype code
+          does with report information.
+        </p>
+        <h3>What you enter</h3>
+        <ul>
+          <li>Issue category, severity and description.</li>
+          <li>Optional photo.</li>
+          <li>
+            Approximate latitude and longitude, either entered manually or
+            supplied by the browser's location permission.
+          </li>
+        </ul>
+        <h3>What is not requested</h3>
+        <p>
+          The report form does not ask for your name, phone number or email
+          address.
+        </p>
+        <h3>Where data is stored</h3>
+        <p>
+          Reports are saved in the browser's <code>localStorage</code>. Tracking
+          therefore works in the browser where the report was saved. The
+          prototype does not include a server or database.
+        </p>
+        <h3>Location and photos</h3>
+        <p>
+          The application rounds the latitude and longitude before saving a
+          submitted report. Photos are resized in the browser and stored as part
+          of the browser-local report data in this prototype.
+        </p>
+        <h3>Maps and external resources</h3>
+        <p>
+          The public site loads map tiles from OpenStreetMap through Leaflet and
+          loads fonts from Google Fonts. Those external services may process
+          requests made by your browser according to their own policies.
+        </p>
+        <h3>Important limitation</h3>
+        <p>
+          This is a hackathon prototype, not a production privacy or security
+          system. The demo admin login is frontend-only and should not be
+          treated as secure authentication.
+        </p>
+        <p>
+          <a
+            class="secondary-button"
+            href="index.html"
+            style="display: inline-block; text-decoration: none"
+            >Back to SurakshaMap</a
+          >
+        </p>
+      </article>
+    </main>
+    <footer class="site-footer">
+      <p>
+        SurakshaMap · <a href="index.html">Public site</a> ·
+        <a href="admin.html">Admin login</a>
+      </p>
+    </footer>
+  </body>
+</html>
